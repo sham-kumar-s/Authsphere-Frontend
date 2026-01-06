@@ -1,9 +1,23 @@
 import axios from "axios";
 
+let accessToken = null;
+
+export const setAccessToken = (token) => {
+    accessToken = token;
+}
+
 const api = axios.create({
     baseURL : "http://localhost:3000/api",
     withCredentials:true,
 });
+
+// REQUEST INTERCEPTOR
+api.interceptors.request.use((config) => {
+    if(accessToken) {
+        config.headers.Authorization = `Bearer ${accessToken}`
+    }
+    return config;
+})
 
 // RESPONSE INTERCEPTOR
 api.interceptors.response.use(
@@ -11,10 +25,11 @@ api.interceptors.response.use(
     async(err) => {
         const originalRequest = err.config;
 
-        // If access token expired
+        // DO NOT refresh for auth routes
         if(
             err.response?.status === 401 && 
-            !originalRequest._retry
+            !originalRequest._retry &&
+            !originalRequest.url.includes("/auth/")
         ) {
             originalRequest._retry = true;
 
@@ -39,3 +54,5 @@ api.interceptors.response.use(
         return Promise.reject(err);
     }
 )
+
+export default api;
